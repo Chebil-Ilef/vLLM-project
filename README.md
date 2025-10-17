@@ -24,7 +24,7 @@ cp chatbot-system/.env.example chatbot-system/.env
 The important variables are:
 - `VLLM_URL` — URL for the OpenAI-compatible vLLM server the backend will call (default `http://vllm:8000` when using docker-compose)
 - `VLLM_API_KEY` — API key for the vLLM server (use the same key passed to the vllm container with --api-key)
-- `VLLM_MODEL` — vLLM model identifier to use (example `mistralai/Mistral-7B-Instruct-v0.3`)
+- `VLLM_MODEL` — vLLM model identifier to use (example `facebook/opt-125m-v0.3`)
 - `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD` — Neo4j connection settings
 
 ### Run with Docker Compose (recommended)
@@ -61,12 +61,12 @@ docker compose up -d
 
 By default this project is configured to use the Mistral instruct model when running the included vLLM server:
 
-- Default model: `mistralai/Mistral-7B-Instruct-v0.3`
+- Default model: `facebook/opt-125m-v0.3`
 
 You can change which model the vLLM server loads in two places:
 
 - In `chatbot-system/.env` set `VLLM_MODEL` to the desired model identifier (the backend reads this when calling the vLLM server).
-- Or change the `--model` argument passed to the `vllm` container in `docker-compose.yml` (the example compose uses `mistralai/Mistral-7B-Instruct-v0.3`).
+- Or change the `--model` argument passed to the `vllm` container in `docker-compose.yml` (the example compose uses `facebook/opt-125m-v0.3`).
 
 Note: larger models will require more memory and GPU resources — consult the vLLM documentation for model compatibility and recommended server/resource settings.
 

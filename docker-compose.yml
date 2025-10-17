@@ -28,6 +28,33 @@ services:
     volumes:
       - ./chatbot-system:/app
 
+  vllm:
+    build:
+        context: .
+        dockerfile: ./chatbot-system/Dockerfile.vllm
+    image: vllm:latest
+    restart: unless-stopped
+    environment:
+      MODEL_NAME: "${VLLM_MODEL:-facebook/opt-125m}"
+      VLLM_LOGGING_LEVEL: DEBUG
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
+    command: >
+      python -m vllm.entrypoints.openai.api_server
+      --model "${VLLM_MODEL:-facebook/opt-125m}"
+      --host 0.0.0.0
+      --port 8000
+    ports:
+      - "8000:8000"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: ["gpu"]
+    # For docker compose v2 you can instead use:
+    gpus: all
+
+
   frontend:
     build: ./frontend
     container_name: bia_frontend
@@ -35,23 +62,6 @@ services:
       - '8080:8080'
     depends_on:
       - backend
-
-  vllm:
-    image: vastai/vllm:v0.8.5-cuda-12.4-pytorch-2.6.0-py312	
-    container_name: vllm_server
-    ports:
-      - "8001:8000"
-    environment:
-      VLLM_API_KEY: devkey
-    command: >
-      --model mistralai/Mistral-7B-Instruct-v0.3
-      --dtype auto
-      --api-key devkey
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - capabilities: ["gpu"]
 
 volumes:
   neo4j_data:

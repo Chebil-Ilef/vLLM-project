@@ -1,15 +1,30 @@
 import os
 import json
+import logging
 from flask import Flask, request, jsonify
-import embed  
+from flask_cors import CORS
+import embed
 import vllm_client
 from dotenv import load_dotenv
 
 load_dotenv()
 
+logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
+logger = logging.getLogger(__name__)
+
 app = Flask(__name__)
 
-embedder = embed.Embedder()
+# Narrow CORS to the frontend origin by default (overridable with FRONTEND_ORIGIN)
+CORS(app, resources={r"/query": {"origins": os.getenv("FRONTEND_ORIGIN", "http://localhost:8080")}})
+
+logger.info("Starting backend; VLLM_URL=%s VLLM_MODEL=%s", os.getenv("VLLM_URL"), os.getenv("VLLM_MODEL"))
+
+try:
+    embedder = embed.Embedder()
+    logger.info("Embedder initialized with %d entries", len(getattr(embedder, "embeddings", {})))
+except Exception:
+    logger.exception("Failed to initialize Embedder; ensure summaries.json and schema_chunks exist and are valid")
+    raise
 
 @app.route("/query", methods=["POST"])
 def query():
@@ -26,8 +41,7 @@ def query():
     with open(os.path.join("schema_chunks", best_file), "r") as f:
         schema_summary = json.load(f).get("summary", "")
 
-    # Compose Gemini prompt with BI expert instruction
-    gemini_prompt = f"""
+    prompt = f"""
 You are a business intelligence expert specializing in dimensional analysis and transforming user queries into complete and actionable analytical strategies.
 
 ## Analysis Context
@@ -101,9 +115,30 @@ Never mention that the names are "not specified" — always assume logical and c
 
     # Call vLLM HTTP API (vllm OpenAI-compatible server). This is mandatory.
     try:
-        answer = vllm_client.call_vllm_chat([{"role": "user", "content": gemini_prompt}], model_name=os.getenv("VLLM_MODEL"), max_tokens=1024, temperature=0.0)
+        logger.info("Calling vLLM (model=%s)", os.getenv("VLLM_MODEL"))
+        raw = vllm_client.openai_chat_completion(
+            model=os.getenv("VLLM_MODEL"),
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=1024,
+            temperature=0.0,
+        )
+        # Extract assistant content in OpenAI Chat style
+        try:
+            answer = raw["choices"][0]["message"]["content"]
+        except Exception:
+            # Fallbacks for alternative response shapes
+            if "choices" in raw and len(raw["choices"]) > 0 and "text" in raw["choices"][0]:
+                answer = raw["choices"][0]["text"]
+            else:
+                logger.debug("Unexpected vLLM raw response: %s", raw)
+                raise RuntimeError("Unexpected vLLM response shape")
     except Exception as e:
-        return jsonify({"error": f"vLLM request failed: {str(e)}"}), 500
+        logger.exception("vLLM request failed: %s", e)
+        return jsonify({
+            "error": "vLLM request failed",
+            "detail": str(e),
+            "vllm_url": os.getenv("VLLM_URL", "http://vllm:8000"),
+        }), 500
 
     return jsonify({
         "best_summary_file": best_file,

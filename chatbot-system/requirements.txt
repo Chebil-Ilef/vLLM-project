@@ -4,3 +4,5 @@ sentence-transformers
 torch
 neo4j
 requests
+flask-cors
+gunicorn

@@ -1,0 +1,23 @@
+{
+  "nodes": [
+    {
+      "name": "fact_sales",
+      "type": "Fact",
+      "measures": ["revenue", "units_sold"]
+    },
+    {
+      "name": "dim_product",
+      "type": "Dimension",
+      "measures": []
+    },
+    {
+      "name": "dim_customer",
+      "type": "Dimension",
+      "measures": []
+    }
+  ],
+  "relationships": [
+    {"from": "fact_sales", "to": "dim_product", "rel_type": "BELONGS_TO"},
+    {"from": "fact_sales", "to": "dim_customer", "rel_type": "BELONGS_TO"}
+  ]
+}

@@ -1,0 +1,24 @@
+FROM python:3.11-slim
+
+ENV PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    UV_SYSTEM_PYTHON=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git build-essential curl && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:${PATH}"
+
+WORKDIR /app
+
+RUN python -m pip install --upgrade pip setuptools wheel
+
+RUN uv pip install --no-cache-dir "vllm[openai]" --torch-backend=auto
+
+EXPOSE 8000
+
+ENV MODEL_NAME=facebook/opt-125m
+
+CMD ["python3", "-m", "vllm.entrypoints.openai.api_server", "--model", "${MODEL_NAME}", "--port", "8000", "--host", "0.0.0.0"]
