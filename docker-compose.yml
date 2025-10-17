@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  neo4j:
+    image: neo4j:5.11
+    container_name: bia_neo4j
+    environment:
+      - NEO4J_AUTH=neo4j/test
+    volumes:
+      - neo4j_data:/data
+    ports:
+      - '7474:7474'
+      - '7687:7687'
+
+  backend:
+    build: ./chatbot-system
+    container_name: bia_backend
+    env_file:
+      - ./chatbot-system/.env
+    environment:
+      # If .env doesn't include these, docker will still have defaults above
+      - FLASK_ENV=production
+    ports:
+      - '5000:5000'
+    depends_on:
+      - neo4j
+    # optional: mount code for development
+    volumes:
+      - ./chatbot-system:/app
+
+  frontend:
+    build: ./frontend
+    container_name: bia_frontend
+    ports:
+      - '8080:8080'
+    depends_on:
+      - backend
+
+volumes:
+  neo4j_data:
