@@ -38,9 +38,29 @@ def summarize_schema(data):
     return "; ".join(summary_lines)
 
 def summarize_with_vllm(prompt, model=None, temperature=0.0, max_tokens=512):
-    
-    messages = [{"role": "user", "content": prompt}]
-    return vllm_client.call_vllm_chat(messages, model_name=os.getenv("VLLM_MODEL"), max_tokens=max_tokens, temperature=temperature)
+    # Use the OpenAI-compatible completions endpoint for maximum compatibility with vLLM servers
+    try:
+        raw = vllm_client.openai_completion(model=model or os.getenv("VLLM_MODEL"), prompt=prompt, max_tokens=max_tokens, temperature=temperature)
+    except Exception:
+        # Try chat-style call as a last resort
+        messages = [{"role": "user", "content": prompt}]
+        return vllm_client.call_vllm_chat(messages, model_name=os.getenv("VLLM_MODEL"), max_tokens=max_tokens, temperature=temperature)
+
+    # Extract text from completions response
+    text = None
+    try:
+        text = raw.get("choices", [])[0].get("text")
+    except Exception:
+        pass
+    if not text:
+        try:
+            text = raw.get("choices", [])[0].get("message", {}).get("content")
+        except Exception:
+            pass
+    if not text:
+        # last fallback: return entire raw JSON for debugging
+        return str(raw)
+    return text
 
 def main():
     

@@ -1,6 +1,6 @@
 # BIAssistant – AI-Powered Business Intelligence Chatbot
 
-BIAssistant is an AI-powered assistant designed to help *non-technical users* explore and analyze business data intuitively — simply by asking questions in natural language.  
+BIAssistant is an AI-powered assistant designed to help *non-technical users* explore and analyze business data intuitively, simply by asking questions in natural language.  
 Whether you're a business analyst, a product manager, or an executive with no BI background, BIAssistant can help you understand your data warehouse and extract valuable insights.
 
 ## Setup
@@ -9,8 +9,8 @@ Follow these steps to run the project locally or with Docker Compose.
 
 ### 1 Prerequisites
 
-- Python 3.11+ and npm (for local frontend build) if running locally
-- Docker and Docker Compose if running with containers
+- Docker and Docker Compose : running with containers
+- Cuda >=12.0
 
 ### 2 Environment
 
@@ -24,7 +24,7 @@ cp chatbot-system/.env.example chatbot-system/.env
 The important variables are:
 - `VLLM_URL` — URL for the OpenAI-compatible vLLM server the backend will call (default `http://vllm:8000` when using docker-compose)
 - `VLLM_API_KEY` — API key for the vLLM server (use the same key passed to the vllm container with --api-key)
-- `VLLM_MODEL` — vLLM model identifier to use (example `facebook/opt-125m-v0.3`)
+- `VLLM_MODEL` — vLLM model identifier to use (example `facebook/opt-125m`)
 - `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD` — Neo4j connection settings
 
 ### Run with Docker Compose (recommended)
@@ -61,12 +61,12 @@ docker compose up -d
 
 By default this project is configured to use the Mistral instruct model when running the included vLLM server:
 
-- Default model: `facebook/opt-125m-v0.3`
+- Default model: `facebook/opt-125m`
 
 You can change which model the vLLM server loads in two places:
 
 - In `chatbot-system/.env` set `VLLM_MODEL` to the desired model identifier (the backend reads this when calling the vLLM server).
-- Or change the `--model` argument passed to the `vllm` container in `docker-compose.yml` (the example compose uses `facebook/opt-125m-v0.3`).
+- Or change the `--model` argument passed to the `vllm` container in `docker-compose.yml` (the example compose uses `facebook/opt-125m`).
 
 Note: larger models will require more memory and GPU resources — consult the vLLM documentation for model compatibility and recommended server/resource settings.
 
@@ -81,7 +81,6 @@ Note: larger models will require more memory and GPU resources — consult the v
 - *Vector-based Retrieval* – Uses FAISS to semantically match questions with relevant schema chunks.
 -  *Modular Design* – Can be integrated with internal tools, CRMs, or analytics dashboards.
 
----
 
 ##  Tech Stack
 
@@ -93,7 +92,6 @@ Note: larger models will require more memory and GPU resources — consult the v
 | Database     | Neo4j             |
 | Vector Store | FAISS             |
 
----
 
 ##  How it Works
 

@@ -3,12 +3,18 @@ services:
     image: neo4j:5.11
     container_name: bia_neo4j
     environment:
-      - NEO4J_AUTH=neo4j/test
+      - NEO4J_AUTH=neo4j/testpassword
     volumes:
       - neo4j_data:/data
     ports:
       - '7474:7474'
       - '7687:7687'
+    healthcheck:
+      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "testpassword", "MATCH () RETURN count(*) as count"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
   backend:
     build:
@@ -23,17 +29,27 @@ services:
     ports:
       - '5000:5000'
     depends_on:
-      - neo4j
-      - vllm
+      neo4j:
+        condition: service_healthy
+      vllm:
+        condition: service_healthy
     volumes:
       - ./chatbot-system:/app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   vllm:
+    container_name: vllm
     build:
         context: .
         dockerfile: ./chatbot-system/Dockerfile.vllm
-    image: vllm:latest
     restart: unless-stopped
+    env_file:
+      - ./chatbot-system/.env         
     environment:
       MODEL_NAME: "${VLLM_MODEL:-facebook/opt-125m}"
       VLLM_LOGGING_LEVEL: DEBUG
@@ -53,6 +69,12 @@ services:
             - capabilities: ["gpu"]
     # For docker compose v2 you can instead use:
     gpus: all
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
 
   frontend:

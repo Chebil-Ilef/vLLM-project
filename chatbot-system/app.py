@@ -26,6 +26,14 @@ except Exception:
     logger.exception("Failed to initialize Embedder; ensure summaries.json and schema_chunks exist and are valid")
     raise
 
+@app.route("/health", methods=["GET"])
+def health():
+    return jsonify({"status": "healthy", "vllm_url": os.getenv("VLLM_URL")}), 200
+
+@app.route("/", methods=["GET"])
+def root():
+    return jsonify({"status": "Backend is running", "endpoints": ["/query", "/health"]}), 200
+
 @app.route("/query", methods=["POST"])
 def query():
     data = request.json
@@ -115,23 +123,41 @@ Never mention that the names are "not specified" — always assume logical and c
 
     # Call vLLM HTTP API (vllm OpenAI-compatible server). This is mandatory.
     try:
-        logger.info("Calling vLLM (model=%s)", os.getenv("VLLM_MODEL"))
-        raw = vllm_client.openai_chat_completion(
+        logger.info("Calling vLLM completions (model=%s)", os.getenv("VLLM_MODEL"))
+        # Use OpenAI-compatible completions endpoint which many vLLM servers expose at /v1/completions
+        raw = vllm_client.openai_completion(
             model=os.getenv("VLLM_MODEL"),
-            messages=[{"role": "user", "content": prompt}],
+            prompt=prompt,
             max_tokens=1024,
             temperature=0.0,
         )
-        # Extract assistant content in OpenAI Chat style
+
+        # Extract assistant text. Support multiple possible shapes:
+        # - OpenAI completions: choices[0].text
+        # - OpenAI chat-like: choices[0].message.content
+        answer = None
         try:
-            answer = raw["choices"][0]["message"]["content"]
+            # completions style
+            answer = raw.get("choices", [])[0].get("text")
         except Exception:
-            # Fallbacks for alternative response shapes
-            if "choices" in raw and len(raw["choices"]) > 0 and "text" in raw["choices"][0]:
-                answer = raw["choices"][0]["text"]
-            else:
-                logger.debug("Unexpected vLLM raw response: %s", raw)
-                raise RuntimeError("Unexpected vLLM response shape")
+            pass
+
+        if not answer:
+            try:
+                answer = raw.get("choices", [])[0].get("message", {}).get("content")
+            except Exception:
+                pass
+
+        if not answer:
+            # Fallback: if the API returns a top-level 'text' or 'output' field
+            if isinstance(raw, dict) and "text" in raw:
+                answer = raw.get("text")
+            elif isinstance(raw, dict) and "output" in raw:
+                answer = raw.get("output")
+
+        if not answer:
+            logger.debug("Unexpected vLLM raw response: %s", raw)
+            raise RuntimeError("Unexpected vLLM response shape")
     except Exception as e:
         logger.exception("vLLM request failed: %s", e)
         return jsonify({
