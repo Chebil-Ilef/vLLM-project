@@ -3,4 +3,4 @@ python-dotenv
 sentence-transformers
 torch
 neo4j
-openai
+requests

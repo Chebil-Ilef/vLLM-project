@@ -1,17 +1,14 @@
 import os
 import json
 from flask import Flask, request, jsonify
-import embed  # assuming embed.py is in the same folder
-import openai
+import embed  
+import vllm_client
 from dotenv import load_dotenv
 
 load_dotenv()
 
 app = Flask(__name__)
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
-
-# Initialize embedder once
 embedder = embed.Embedder()
 
 @app.route("/query", methods=["POST"])
@@ -102,11 +99,11 @@ Clearly indicate which **fact tables**, **measures**, and **dimensions** are inv
 Never mention that the names are "not specified" — always assume logical and consistent names.
 """
 
+    # Call vLLM HTTP API (vllm OpenAI-compatible server). This is mandatory.
     try:
-        response = call_openai_chat([{"role": "user", "content": gemini_prompt}])
-        answer = response.strip()
+        answer = vllm_client.call_vllm_chat([{"role": "user", "content": gemini_prompt}], model_name=os.getenv("VLLM_MODEL"), max_tokens=1024, temperature=0.0)
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"vLLM request failed: {str(e)}"}), 500
 
     return jsonify({
         "best_summary_file": best_file,
@@ -114,10 +111,6 @@ Never mention that the names are "not specified" — always assume logical and c
         "response": answer
     })
 
-def call_openai_chat(messages, model=None, temperature=0.0):
-    model = model or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-    resp = openai.ChatCompletion.create(model=model, messages=messages, temperature=temperature)
-    return resp["choices"][0]["message"]["content"]
 
 if __name__ == "__main__":
         app.run(host="0.0.0.0", port=5000)

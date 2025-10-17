@@ -3,15 +3,12 @@ import json
 from dotenv import load_dotenv
 from neo4j import GraphDatabase
 
-# Load environment variables from .env file
 load_dotenv()
 
-# Neo4j connection config from env
 NEO4J_URI = os.getenv("NEO4J_URI")
 NEO4J_USER = os.getenv("NEO4J_USER")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
 
-# How many nodes per chunk
 CHUNK_SIZE = 50
 
 class Neo4jSchemaExtractor:
@@ -22,6 +19,7 @@ class Neo4jSchemaExtractor:
         self.driver.close()
 
     def get_nodes(self):
+
         with self.driver.session() as session:
             result = session.run("""
                 MATCH (n:Table)
@@ -31,6 +29,7 @@ class Neo4jSchemaExtractor:
             return [record.data() for record in result]
 
     def get_relationships(self):
+
         with self.driver.session() as session:
             result = session.run("""
                 MATCH (a:Table)-[r]->(b:Table)
@@ -39,6 +38,7 @@ class Neo4jSchemaExtractor:
             return [record.data() for record in result]
 
 def summarize_chunk(chunk):
+
     node_types = [node['type'] for node in chunk['nodes']]
     facts = node_types.count("Fact")
     dims = node_types.count("Dimension")
@@ -51,6 +51,7 @@ def summarize_chunk(chunk):
     return summary
 
 def chunk_data(nodes, relationships, chunk_size):
+
     chunks = []
     for i in range(0, len(nodes), chunk_size):
         chunk_nodes = nodes[i:i+chunk_size]
@@ -63,6 +64,7 @@ def chunk_data(nodes, relationships, chunk_size):
     return chunks
 
 def main():
+    
     extractor = Neo4jSchemaExtractor(NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD)
     try:
         print("Extracting nodes...")

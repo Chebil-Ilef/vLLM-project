@@ -13,7 +13,11 @@ services:
       - '7687:7687'
 
   backend:
-    build: ./chatbot-system
+    # Pass build arg to optionally enable vLLM in the backend image
+    build:
+      context: ./chatbot-system
+      args:
+        USE_VLLM: ${USE_VLLM:-0}
     container_name: bia_backend
     env_file:
       - ./chatbot-system/.env
@@ -24,9 +28,21 @@ services:
       - '5000:5000'
     depends_on:
       - neo4j
+      - vllm
     # optional: mount code for development
     volumes:
       - ./chatbot-system:/app
+    # If you need GPU access for vLLM, Docker Compose v2/v3 does not universally support a portable spec.
+    # On Docker Engine with NVIDIA Container Toolkit you can run the built image with:
+    #   docker run --gpus all -e USE_VLLM=1 ... <image>
+    # Or, if your environment supports it, you can add at runtime:
+    #    deploy:
+    #      resources:
+    #        reservations:
+    #          devices:
+    #            - driver: nvidia
+    #              count: 1
+    #              capabilities: [gpu]
 
   frontend:
     build: ./frontend
@@ -35,6 +51,23 @@ services:
       - '8080:8080'
     depends_on:
       - backend
+
+  vllm:
+    image: vllm/vllm-openai:latest
+    container_name: vllm_server
+    ports:
+      - "8001:8000"
+    environment:
+      VLLM_API_KEY: devkey
+    command: >
+      --model mistralai/Mistral-7B-Instruct-v0.3
+      --dtype auto
+      --api-key devkey
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: ["gpu"]
 
 volumes:
   neo4j_data:

@@ -1,4 +1,4 @@
-# 🧠 BIAssistant – AI-Powered Business Intelligence Chatbot
+# BIAssistant – AI-Powered Business Intelligence Chatbot
 
 BIAssistant is an AI-powered assistant designed to help *non-technical users* explore and analyze business data intuitively — simply by asking questions in natural language.  
 Whether you're a business analyst, a product manager, or an executive with no BI background, BIAssistant can help you understand your data warehouse and extract valuable insights.
@@ -18,47 +18,31 @@ Copy the example env for the backend and set secrets (do NOT commit your real ke
 
 ```bash
 cp chatbot-system/.env.example chatbot-system/.env
-# Edit chatbot-system/.env and set OPENAI_API_KEY and any other secrets
+# Edit chatbot-system/.env and set VLLM_URL, VLLM_API_KEY, VLLM_MODEL and any other secrets
 ```
 
 The important variables are:
-- `OPENAI_API_KEY` — OpenAI API key used by the backend
-- `OPENAI_MODEL` — optional; default `gpt-4o-mini` in the example
+- `VLLM_URL` — URL for the OpenAI-compatible vLLM server the backend will call (default `http://vllm:8000` when using docker-compose)
+- `VLLM_API_KEY` — API key for the vLLM server (use the same key passed to the vllm container with --api-key)
+- `VLLM_MODEL` — vLLM model identifier to use (example `mistralai/Mistral-7B-Instruct-v0.3`)
 - `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD` — Neo4j connection settings
 
-### 3a Run locally (frontend + backend separately)
+### Run with Docker Compose (recommended)
 
-Backend (Python):
-
-```bash
-cd chatbot-system
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-# ensure chatbot-system/.env has OPENAI_API_KEY set
-python app.py
-```
-
-Frontend (Vite):
+From the project root, copy the example env and start the stack:
 
 ```bash
-cd frontend
-npm install
-npm run dev
-```
+cp chatbot-system/.env.example chatbot-system/.env
+# Edit chatbot-system/.env and set VLLM_URL, VLLM_API_KEY, VLLM_MODEL and any other secrets
 
-The frontend expects the backend at `http://localhost:5000` by default.
-
-### 3b Run with Docker Compose (recommended)
-
-From project root:
-
-```bash
 docker compose build
 docker compose up
 ```
 
-This starts Neo4j (ports 7474/7687), the backend on port 5000, and the frontend on port 8080.
+What this will start:
+- Neo4j (http://localhost:7474, bolt://localhost:7687)
+- Backend (Flask) on http://localhost:5000
+- Frontend (Vite) on http://localhost:8080
 
 To run detached:
 
@@ -73,23 +57,25 @@ docker compose build --no-cache
 docker compose up -d
 ```
 
-### 4 Notes and troubleshooting
+## Model
 
-- If you previously used a Google Gemini key, replace app config to use `OPENAI_API_KEY` and ensure `openai` is installed (the `requirements.txt` already contains `openai`).
-- The compose file mounts `./chatbot-system` into the backend container for dev; for production remove the mount to rely on image contents only.
-- Check container logs with `docker compose logs -f backend` and browser devtools for frontend requests to debug connectivity.
+By default this project is configured to use the Mistral instruct model when running the included vLLM server:
 
----
+- Default model: `mistralai/Mistral-7B-Instruct-v0.3`
 
-If you'd like, I can also update `README.md` to include example API usage or wire the `app.py` code to fully use OpenAI (I sketched the changes earlier). Which would you like next?
+You can change which model the vLLM server loads in two places:
 
+- In `chatbot-system/.env` set `VLLM_MODEL` to the desired model identifier (the backend reads this when calling the vLLM server).
+- Or change the `--model` argument passed to the `vllm` container in `docker-compose.yml` (the example compose uses `mistralai/Mistral-7B-Instruct-v0.3`).
+
+Note: larger models will require more memory and GPU resources — consult the vLLM documentation for model compatibility and recommended server/resource settings.
 
 ## Features
 
 - *Conversational Interface* – Ask questions like:
   - "What are the top-performing products this month?"
   - "Which KPIs are underperforming this quarter?"
-- *Powered by Google Gemini* – Translates business questions into analytical strategies.
+- *Powered by vLLM (OpenAI-compatible)* – Translates business questions into analytical strategies via the local or remote vLLM server configured by `VLLM_URL`.
 - *Schema-aware* – Understands fact tables, dimensions, and measures.
 - *Works with Large Schemas* – Handles 150+ tables split across multiple JSON files.
 - *Vector-based Retrieval* – Uses FAISS to semantically match questions with relevant schema chunks.
@@ -103,7 +89,7 @@ If you'd like, I can also update `README.md` to include example API usage or wir
 |--------------|-------------------|
 | Frontend     | React + Vite      |
 | Backend      | Flask             |
-| AI Model     | Google Gemini     |
+| AI Model     | vLLM              |
 | Database     | Neo4j             |
 | Vector Store | FAISS             |
 

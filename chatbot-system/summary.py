@@ -1,10 +1,9 @@
 import os
 import json
-import openai
-
-openai.api_key = os.getenv("OPENAI_API_KEY")
+import vllm_client
 
 def summarize_schema(data):
+    
     nodes = data.get("nodes", [])
     relationships = data.get("relationships", [])
     
@@ -38,13 +37,13 @@ def summarize_schema(data):
     
     return "; ".join(summary_lines)
 
-def summarize_with_openai(prompt, model=None, temperature=0.0):
-    model = model or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+def summarize_with_vllm(prompt, model=None, temperature=0.0, max_tokens=512):
+    
     messages = [{"role": "user", "content": prompt}]
-    resp = openai.ChatCompletion.create(model=model, messages=messages, temperature=temperature)
-    return resp["choices"][0]["message"]["content"]
+    return vllm_client.call_vllm_chat(messages, model_name=os.getenv("VLLM_MODEL"), max_tokens=max_tokens, temperature=temperature)
 
 def main():
+    
     dir_path = "schema_chunks"
     summaries = {}
     
