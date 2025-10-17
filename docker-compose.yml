@@ -37,7 +37,7 @@ services:
       - backend
 
   vllm:
-    image: vllm/vllm-openai:latest
+    image: vastai/vllm:v0.8.5-cuda-12.4-pytorch-2.6.0-py312	
     container_name: vllm_server
     ports:
       - "8001:8000"
