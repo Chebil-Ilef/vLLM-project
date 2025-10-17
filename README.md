@@ -110,9 +110,13 @@ Note: larger models will require more memory and GPU resources — consult the v
 4. *User Question Handling*  
    - User types a natural language question in the React UI.
    - The Flask backend receives it and uses FAISS to find the most relevant schema chunks.
-   - It sends those chunks along with the user's question to Gemini with a BI-optimized prompt.
+   - It sends those chunks along with the user's question to Gemini wth a BI-optimized prompt.
    - Gemini generates a structured response outlining:
      - Strategic objective
      - Key dimensions and measures
      - Analytical techniques
      - Actionable business insights
+
+## Demo
+
+![Demo](demo.gif)
