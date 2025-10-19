@@ -1,6 +1,6 @@
-# BIAssistant – AI-Powered Business Intelligence Chatbot
+# BI Assistant Agent : AI-Powered Business Intelligence Chatbot via vLLM
 
-BIAssistant is an AI-powered assistant designed to help *non-technical users* explore and analyze business data intuitively, simply by asking questions in natural language.  
+BI Assistant Agent is an AI-powered assistant designed to help *non-technical users* explore and analyze business data intuitively, simply by asking questions in natural language.  
 Whether you're a business analyst, a product manager, or an executive with no BI background, BIAssistant can help you understand your data warehouse and extract valuable insights.
 
 ## Setup
