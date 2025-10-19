@@ -19,7 +19,7 @@ RUN uv pip install --no-cache-dir "vllm[openai]" --torch-backend=auto
 
 EXPOSE 8000
 
-ENV MODEL_NAME=mistralai/Mistral-7B-v0.1
+ENV MODEL_NAME=mistralai/Mistral-7B-Instruct-v0.1
+ENV VLLM_API_KEY=devkey
 
-
-CMD ["python3", "-m", "vllm.entrypoints.openai.api_server", "--model", "${MODEL_NAME}", "--port", "8000", "--host", "0.0.0.0"]
+CMD ["python3", "-m", "vllm.entrypoints.openai.api_server", "--model", "${MODEL_NAME}", "--port", "8000", "--host", "0.0.0.0", "--api-key", "${VLLM_API_KEY}", "--max_model_len", "2048", "--gpu_memory_utilization", "0.9"]
